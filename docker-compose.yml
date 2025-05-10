@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  patient-management-api:
+    build:
+      context: .
+      dockerfile: PatientManagement.API/Dockerfile
+    ports:
+      - "5001:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=patient-db;Database=PatientManagement;User Id=sa;Password=YourStrong!Passw0rd;
+    depends_on:
+      - patient-db
+
+  ehr-api:
+    build:
+      context: .
+      dockerfile: EHR.API/Dockerfile
+    ports:
+      - "5002:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=ehr-db;Database=EHR;User Id=sa;Password=YourStrong!Passw0rd;
+    depends_on:
+      - ehr-db
+
+  appointment-scheduling-api:
+    build:
+      context: .
+      dockerfile: AppointmentScheduling.API/Dockerfile
+    ports:
+      - "5003:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=appointment-db;Database=AppointmentScheduling;User Id=sa;Password=YourStrong!Passw0rd;
+    depends_on:
+      - appointment-db
+
+  patient-db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+    ports:
+      - "1433:1433"
+    volumes:
+      - patient-db-data:/var/opt/mssql
+
+  ehr-db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+    ports:
+      - "1434:1433"
+    volumes:
+      - ehr-db-data:/var/opt/mssql
+
+  appointment-db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+    ports:
+      - "1435:1433"
+    volumes:
+      - appointment-db-data:/var/opt/mssql
+
+volumes:
+  patient-db-data:
+  ehr-db-data:
+  appointment-db-data: 
