@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PatientManagement.API.Data;
+using Polly;
+using Polly.Retry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,11 +23,35 @@ builder.Services.AddCors(options =>
         });
 });
 
-// Configure database
+// Configure database with retry policy
+var retryPolicy = Policy
+    .Handle<Exception>()
+    .WaitAndRetry(5, retryAttempt => 
+        TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
 builder.Services.AddDbContext<PatientDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
+
+// Ensure database is created with retry
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        retryPolicy.Execute(() =>
+        {
+            var context = services.GetRequiredService<PatientDbContext>();
+            context.Database.EnsureCreated();
+        });
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while creating the database.");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
